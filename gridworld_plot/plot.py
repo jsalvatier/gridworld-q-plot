@@ -6,45 +6,71 @@ import matplotlib.cm as cm
 from matplotlib.text import OffsetFrom
 from matplotlib.patches import Arrow
 
-def plot_num(ax, xy, offset, value):
+def plot_num(ax, xy, offset, value, **kwargs):
     x, y = xy
     offset = offset * .47
 
-    textoffset = offset *.85
-    textxy = (x + textoffset[0], y + textoffset[1])
+    textxy = (x + offset[0]*.85, y + offset[1]*.85)
 
     ax.annotate(value, 
             xy=(x, y), xycoords='data',
             xytext=textxy,
             horizontalalignment='center',
-            verticalalignment='center')
+            verticalalignment='center', **kwargs)
 
 def plot_arrow(ax, xy, offset, color):
     x, y = xy
     offset = offset * .47
 
-    arrowx = x + offset[0]*.15
-    arrowy = y + offset[1]*.15
+    arrowx = x + offset[0]*.65
+    arrowy = y + offset[1]*.65
     ax.add_patch(
-            Arrow(arrowx, arrowy, offset[0]*.8, offset[1]*.8, width=.5, facecolor=color))
+            Arrow(arrowx, arrowy, offset[0]*.35, offset[1]*.35, width=.5, facecolor=color))
+
+def plot_square(ax, xy, offset, color):
+    x, y = xy
+    offset = offset * .47
+
+    x = x + offset[0]*.15
+    y = y + offset[1]*.15
+
+    ax.add_patch(
+        patches.Rectangle(
+            (x-.05, y-.05),   
+            .1,          # width
+            .1,          # height
+            facecolor=color,
+            edgecolor='black'
+        )
+    )
 
 def color_square(ax, xy, color):
     x, y = xy
     ax.add_patch(
         patches.Rectangle(
-            (x, y),   # (x,y)
+            (x-.5, y-.5),   
             .99,          # width
             .99,          # height
-            color=color
+            color=color,
+            alpha=.5
         )
     )
 
-def plot_labeled_arrows(ax, xy, qs): 
-    dirs = [LEFT, DOWN, RIGHT, UP]
 
-    for q, direction in zip(qs, dirs):
-        plot_arrow(ax, xy, direction, cm.plasma(q * .75 + .25))
-        plot_num  (ax, xy, direction, "%.3g" % q)
+def plot_labeled_arrows(dirs): 
+    def draw(ax, xy, qs):
+
+        color_square(ax, xy, cm.coolwarm(max(qs)))
+
+        for q, direction in zip(qs, dirs):
+            v = (q-min(qs))/(max(qs)-min(qs))
+            if not all(direction == CENTER):
+                plot_arrow(ax, xy, direction, cm.coolwarm(v))
+            else:
+                plot_square(ax, xy, direction, cm.coolwarm(v))
+
+            plot_num  (ax, xy, direction, "%.3g" % q)
+    return draw
 
 
 
@@ -64,8 +90,10 @@ def compute_vals(qs):
 
 
 def normalize_q(Qs): 
-    vals = compute_vals(Qs)
-    vmax, vmin = max(vals), min(vals)
+    #vals = compute_vals(Qs)
+    allq = [q for qs in Qs.values() for q in qs]
+    #vmax, vmin = max(vals), min(vals)
+    vmax, vmin = max(allq), min(allq)
     range = max(vmax - vmin, 1e-8)
 
     def norm(q):
@@ -83,15 +111,27 @@ def plotQ(ax, gridworld, qs, plot_square):
 
         plot_square(ax, xy, qs[s])
 
-def plotR(ax, gridworld, R, Rs):
+def plotR(ax, gridworld, Rs):
     for s in range(gridworld.nState): 
-        r = R[s, 0]
-        rs = (Rs[s,0][0],)
+        rs = Rs[s,0][0]
 
         rc = gridworld.row_and_column(s)
-        xy = rowcol_to_xy(gridworld, rc + np.array([.25, .25]) )
+        xy = rowcol_to_xy(gridworld, rc)
 
-        plot_num(ax, xy, "%.3g ~ %.3g, %.3g" % (rs +r))
+        plot_num(ax, xy, (UP + RIGHT)*.5, "r=%.3g" % rs, alpha=.5)
+
+def plotRBelief(ax, gridworld, Rs):
+    for s in range(gridworld.nState): 
+        m, precision = Rs[s,0]
+        sd = precision **-.5
+
+
+        rc = gridworld.row_and_column(s)
+        xy = rowcol_to_xy(gridworld, rc)
+
+
+
+        plot_num(ax, xy, (.5*UP + RIGHT)*.5, "[%.3g, %.3g]" % (m-sd, m+sd))
 
 def grid_plot(gridworld):
     fig = pl.figure() 
