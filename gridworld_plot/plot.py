@@ -137,8 +137,11 @@ def grid_plot(gridworld):
     fig = pl.figure() 
     ax = fig.add_subplot(111)
 
-    ax.set_xticks(range(gridworld.grid_width +1))
-    ax.set_yticks(range(gridworld.grid_width + 1))
+    coords = [ gridworld.row_and_column(s) for s in range(gridworld.nState) ]
+    rmax = max(c[0] for c in coords)
+    cmax = max(c[1] for c in coords)
+    ax.set_xticks(range(cmax + 2))
+    ax.set_yticks(range(rmax + 2))
     pl.grid(True)
     return fig, ax
     
